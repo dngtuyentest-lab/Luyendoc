@@ -3,59 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Luyện Đọc Trực Tuyến</title>
+    <title>Luyện Đọc Trực Tuyến</title>
     <style>
-        body { font-family: 'Arial', sans-serif; background: #eef2f7; padding: 15px; }
-        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        .header { text-align: center; color: #2c3e50; margin-bottom: 20px; }
-        .label { font-weight: bold; color: #34495e; margin-bottom: 8px; display: block; }
-        /* Khung hiển thị bài đọc của GV */
-        #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 18px; margin-bottom: 20px; color: #2c3e50; line-height: 1.6; }
-        /* Khung hiển thị bài đọc của HS */
-        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 120px; font-size: 18px; margin-bottom: 15px; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
-        .btn-start { background: #27ae60; }
-        .btn-stop { background: #c0392b; }
-        .btn-send { background: #8e44ad; grid-column: span 2; margin-top: 10px; }
-        input#studentName { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
-        #status { font-size: 14px; text-align: center; margin-bottom: 10px; color: #7f8c8d; }
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; }
+        .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        .label { font-weight: bold; display: block; margin-top: 15px; color: #34495e; }
+        
+        /* Khung hiển thị bài đọc từ giáo viên */
+        #teacherText { 
+            background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; 
+            border-radius: 10px; min-height: 150px; font-size: 20px; 
+            margin-top: 10px; white-space: pre-wrap; color: #2c3e50; line-height: 1.6;
+        }
+
+        /* Khung hiển thị kết quả đọc - ĐÃ KHÓA KHÔNG CHO GÕ */
+        #studentResult { 
+            background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; 
+            border-radius: 10px; min-height: 120px; font-size: 19px; 
+            margin-top: 10px; color: #2980b9; line-height: 1.6;
+            user-select: none; /* Ngăn chặn việc copy/paste vào */
+            pointer-events: none; /* Ngăn chặn mọi tương tác chuột/bàn phím vào ô này */
+        }
+        
+        /* Cho phép tương tác lại khi bấm nút đọc để máy ghi chữ vào */
+        .active-recording { pointer-events: auto !important; }
+
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; transition: 0.3s; }
+        .btn-start { background: #27ae60; } .btn-start:hover { background: #2ecc71; }
+        .btn-stop { background: #c0392b; } .btn-stop:hover { background: #e74c3c; }
+        .btn-send { background: #8e44ad; grid-column: span 2; } .btn-send:hover { background: #9b59b6; }
+        
+        input#studentName { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        #status { text-align: center; font-style: italic; color: #7f8c8d; margin-top: 5px; height: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="header"><h2>LUYỆN ĐỌC MỖI NGÀY</h2></div>
-
-    <span class="label">📖 Bài đọc của em:</span>
+    <h2>📖 BÀI LUYỆN ĐỌC HÔM NAY</h2>
+    
     <div id="teacherText">Đang tải bài đọc...</div>
 
     <span class="label">👤 Tên của em:</span>
-    <input type="text" id="studentName" placeholder="Nhập họ tên để cô biết là ai nhé...">
+    <input type="text" id="studentName" placeholder="Nhập họ và tên để bắt đầu...">
 
-    <span class="label">🎙️ Kết quả em đọc:</span>
-    <div id="status">Bấm nút xanh để bắt đầu</div>
-    <div id="studentResult" contenteditable="true">Kết quả sẽ hiện ở đây...</div>
+    <span class="label">🎙️ Kết quả em đọc (Máy tự ghi chữ):</span>
+    <div id="status">Nhấn nút xanh để bắt đầu</div>
+    <div id="studentResult"></div>
 
     <div class="btn-group">
         <button class="btn-start" onclick="startRecognition()">Bắt đầu đọc</button>
         <button class="btn-stop" onclick="stopRecognition()">Dừng lại</button>
-        <button class="btn-send" onclick="sendToTeacher()">Gửi bài cho giáo viên</button>
+        <button class="btn-send" onclick="sendToTeacher()">Nộp bài cho Giáo viên</button>
     </div>
 </div>
 
 <script>
     // --- CẤU HÌNH ---
-    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
+    const SHEET_ID = "1tfcpFv0JGGXLovSbkOWHLNSHImKAIp3_ZEejtsoBjLY";
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
-    // 1. Tự động lấy bài đọc từ Link (Ví dụ: index.html?bai=Con cò)
-    window.onload = function() {
-        const params = new URLSearchParams(window.location.search);
-        const noiDung = params.get('bai');
-        if (noiDung) {
-            document.getElementById('teacherText').innerText = decodeURIComponent(noiDung);
-        } else {
-            document.getElementById('teacherText').innerText = "Chào mừng em! Hãy chờ cô gửi link bài đọc nhé.";
+    // 1. Lấy bài từ Sheets (B1)
+    window.onload = async function() {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
+        try {
+            const response = await fetch(url);
+            const data = await response.text();
+            document.getElementById('teacherText').innerText = data.replace(/^"|"$/g, '').replace(/""/g, '"');
+        } catch (e) {
+            document.getElementById('teacherText').innerText = "Lỗi kết nối bài đọc!";
         }
     };
 
@@ -65,41 +83,45 @@
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onstart = () => { document.getElementById('status').innerText = "🔴 Hệ thống đang nghe..."; };
+    function startRecognition() { 
+        recognition.start(); 
+        document.getElementById('status').innerText = "🔴 Đang lắng nghe... Em hãy đọc to nhé!";
+    }
+    
+    function stopRecognition() { 
+        recognition.stop(); 
+        document.getElementById('status').innerText = "🟢 Đã dừng."; 
+    }
+
     recognition.onresult = (event) => {
         let transcript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
             transcript += event.results[i][0].transcript;
         }
+        // Ghi kết quả vào khung (HS không gõ được nhưng máy vẫn ghi được)
         document.getElementById('studentResult').innerText = transcript;
     };
 
-    function startRecognition() { recognition.start(); }
-    function stopRecognition() { recognition.stop(); document.getElementById('status').innerText = "🟢 Đã dừng."; }
-
-    // 3. Gửi dữ liệu về Google Sheets
+    // 3. Gửi bài nộp
     async function sendToTeacher() {
         const name = document.getElementById('studentName').value;
-        const original = document.getElementById('teacherText').innerText;
         const result = document.getElementById('studentResult').innerText;
-
-        if (!name) { alert("Em hãy nhập tên trước khi gửi nhé!"); return; }
-
-        document.getElementById('status').innerText = "⌛ Đang gửi bài...";
         
+        if (!name) return alert("Em nhập tên trước khi nộp bài nhé!");
+        if (!result) return alert("Em chưa đọc gì mà!");
+
         try {
-            await fetch(GOOGLE_SHEET_URL, {
-                method: "POST",
-                mode: "no-cors",
-                body: JSON.stringify({ name: name, original: original, result: result })
+            await fetch(WEB_APP_URL, {
+                method: "POST", mode: "no-cors",
+                body: JSON.stringify({ 
+                    name: name, 
+                    original: document.getElementById('teacherText').innerText, 
+                    result: result 
+                })
             });
-            alert("Chúc mừng " + name + "! Cô đã nhận được bài đọc của em rồi.");
-            document.getElementById('status').innerText = "✅ Gửi thành công!";
-        } catch (e) {
-            alert("Lỗi kết nối, em thử lại nhé!");
-        }
+            alert("Chúc mừng " + name + "! Thầy đã nhận được bài rồi.");
+        } catch (e) { alert("Lỗi gửi bài!"); }
     }
 </script>
-
 </body>
 </html>
