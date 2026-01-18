@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Luyện Đọc Học Sinh</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; resize: vertical; box-sizing: border-box; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; }
+        button { padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-start { background-color: #27ae60; color: white; }
+        .btn-stop { background-color: #c0392b; color: white; }
+        .btn-share { background-color: #2980b9; color: white; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        #status { font-style: italic; color: #e67e22; margin-top: 5px; }
+        #resultArea { background: #f9f9f9; min-height: 100px; padding: 15px; border: 2px dashed #3498db; border-radius: 8px; margin-top: 10px; font-size: 18px; line-height: 1.6; }
+        .highlight { background-color: yellow; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Tiếng Việt - Luyện Đọc</h1>
+
+    <label>Văn bản cần đọc (GV nhập vào):</label>
+    <textarea id="teacherText" rows="4" placeholder="Nhập đoạn văn bản tại đây..."></textarea>
+
+    <hr style="margin: 30px 0;">
+
+    <label>Kết quả giọng đọc của em:</label>
+    <div id="status">Sẵn sàng để nghe...</div>
+    <div id="resultArea" contenteditable="true">Văn bản em đọc sẽ xuất hiện ở đây...</div>
+
+    <div class="controls">
+        <button id="startBtn" class="btn-start" onclick="startSpeech()">Bắt đầu đọc</button>
+        <button id="stopBtn" class="btn-stop" onclick="stopSpeech()" disabled>Dừng & Lưu</button>
+        <button id="shareBtn" class="btn-share" onclick="shareToZalo()">Chia sẻ qua Zalo (Tải file .doc)</button>
+    </div>
+</div>
+
+<script src="https://unpkg.com/docx@7.1.0/build/index.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+<script>
+    let recognition;
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const resultArea = document.getElementById('resultArea');
+    const statusText = document.getElementById('status');
+
+    // Cấu hình nhận diện giọng nói
+    if ('webkitSpeechRecognition' in window) {
+        recognition = new webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'vi-VN';
+
+        recognition.onstart = () => {
+            statusText.innerText = "Đang lắng nghe... Hãy đọc to, rõ ràng.";
+            resultArea.innerText = "";
+        };
+
+        recognition.onresult = (event) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript += event.results[i][0].transcript;
+            }
+            resultArea.innerText = transcript;
+        };
+
+        recognition.onerror = (event) => {
+            statusText.innerText = "Lỗi: " + event.error;
+        };
+
+        recognition.onend = () => {
+            statusText.innerText = "Đã dừng nhận diện.";
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+    } else {
+        alert("Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Hãy dùng Google Chrome.");
+    }
+
+    function startSpeech() {
+        recognition.start();
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+    }
+
+    function stopSpeech() {
+        recognition.stop();
+    }
+
+    // Hàm tạo file Word và hướng dẫn chia sẻ
+    async function shareToZalo() {
+        const text = resultArea.innerText;
+        const teacherOriginal = document.getElementById('teacherText').value;
+
+        if (!text || text === "Văn bản em đọc sẽ xuất hiện ở đây...") {
+            alert("Em chưa đọc gì cả!");
+            return;
+        }
+
+        // Tạo nội dung file Word đơn giản bằng định dạng HTML
+        const content = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'></head>
+            <body>
+                <h2>BÀI LUYỆN ĐỌC CỦA HỌC SINH</h2>
+                <p><b>Văn bản gốc:</b> ${teacherOriginal}</p>
+                <p><b>Kết quả em đọc:</b> ${text}</p>
+                <p><i>Ngày thực hiện: ${new Date().toLocaleString()}</i></p>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob(['\ufeff', content], {
+            type: 'application/msword'
+        });
+
+        // Tải file về máy
+        saveAs(blob, "BaiLuyenDoc.doc");
+
+        // Thông báo cho người dùng
+        setTimeout(() => {
+            alert("File bài làm đã được tải xuống! Bây giờ ứng dụng sẽ mở Zalo, bạn hãy chọn GV để gửi file nhé.");
+            // Mở Zalo (Web hoặc App tùy máy)
+            window.open("https://chat.zalo.me/", "_blank");
+        }, 1000);
+    }
+</script>
+
+</body>
+</html>
