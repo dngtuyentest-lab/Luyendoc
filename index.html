@@ -4,45 +4,45 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LUYỆN ĐỌC</title>
-    <meta property="og:title" content="LUYỆN ĐỌC">
-    <meta property="og:image" content="https://img.freepik.com/free-vector/open-book-with-cartoon-style_23-2148882914.jpg">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; }
         .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; }
-        .warning { color: red; font-weight: bold; text-align: center; background: #ffffcc; padding: 10px; border-radius: 5px; font-size: 13px; margin-bottom: 15px; border: 1px solid #f1c40f; }
         #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; border-radius: 10px; min-height: 80px; font-size: 22px; margin: 10px 0; white-space: pre-wrap; }
-        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 20px; color: #2980b9; }
-        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; }
-        .btn-start { background: #27ae60; } .btn-stop { background: #c0392b; }
-        .btn-send { background: #8e44ad; grid-column: span 2; }
+        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 20px; color: #2980b9; margin-bottom: 10px; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; transition: 0.3s; }
+        .btn-start { background: #27ae60; grid-column: span 2; } /* Nút to nhất */
+        .btn-stop { background: #e67e22; }
+        .btn-send { background: #8e44ad; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        #status { text-align: center; font-weight: bold; margin: 10px 0; height: 25px; }
+        .mic-off { color: red; }
+        .mic-on { color: green; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="warning">⚠️ Nếu lỗi Mic: Bấm (⋮) ở góc trên phải -> Chọn "Mở bằng trình duyệt"</div>
     <h2>📖 LUYỆN ĐỌC</h2>
     <div id="teacherText">Đang tải bài đọc...</div>
     <input type="text" id="studentName" placeholder="Nhập họ tên của em...">
+    <div id="status" class="mic-off">Trạng thái: Đang tắt Mic</div>
     <div id="studentResult"></div>
-    <div id="status" style="text-align:center; font-style:italic; margin: 10px 0;">Sẵn sàng</div>
+    
     <div class="btn-group">
-        <button class="btn-start" onclick="startBtn()">Bắt đầu đọc</button>
-        <button class="btn-stop" onclick="stopBtn()">Dừng lại</button>
-        <button class="btn-send" onclick="sendToTeacher()">Nộp bài cho GV.</button>
+        <button id="btnMain" class="btn-start" onclick="toggleMic()">🎤 Bấm để bắt đầu đọc</button>
+        <button class="btn-stop" onclick="clearAll()">Xóa đọc lại</button>
+        <button class="btn-send" onclick="sendToTeacher()">Gửi bài cho GV.</button>
     </div>
 </div>
 
 <script>
-    // --- ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY ---
     const SHEET_ID = "1tfcpFv0JGGXLovSbkOWHLNSHImKAIp3_ZEejtsoBjLY";
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
     let isRecording = false;
-    let finalCombinedText = ""; // Lưu trữ văn bản cuối cùng đã lọc lặp
+    let finalCombinedText = ""; 
 
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
@@ -61,7 +61,6 @@
     recognition.onresult = (event) => {
         let interimTranscript = "";
         let newFinalText = "";
-
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
                 newFinalText += event.results[i][0].transcript + " ";
@@ -69,39 +68,38 @@
                 interimTranscript += event.results[i][0].transcript;
             }
         }
-
-        if (newFinalText !== "") {
-            // THUẬT TOÁN MỚI: Chỉ thêm đoạn mới nếu nó không trùng với đoạn cuối của nội dung hiện tại
-            let currentContent = finalCombinedText.trim().toLowerCase();
-            let incomingContent = newFinalText.trim().toLowerCase();
-            
-            if (!currentContent.endsWith(incomingContent)) {
-                finalCombinedText += newFinalText;
-            }
-        }
-        
-        document.getElementById('studentResult').innerText = finalCombinedText + interimTranscript;
+        document.getElementById('studentResult').innerText = finalCombinedText + newFinalText + interimTranscript;
+        if (newFinalText) finalCombinedText += newFinalText;
     };
 
+    // Khi Mic tự ngắt (Do Zalo hoặc do đứng máy)
     recognition.onend = () => {
-        if (isRecording) {
-            // Khi Zalo ngắt, khởi động lại nhưng không xóa dữ liệu cũ
-            recognition.start();
-        }
+        isRecording = false;
+        document.getElementById('status').innerText = "⚠️ Mic đã tắt. Bấm nút xanh để đọc tiếp";
+        document.getElementById('status').className = "mic-off";
+        document.getElementById('btnMain').innerText = "🎤 Bấm để đọc tiếp";
+        document.getElementById('btnMain').style.background = "#27ae60";
     };
 
-    function startBtn() {
-        finalCombinedText = ""; // Xóa bài cũ để đọc bài mới
-        document.getElementById('studentResult').innerText = "";
-        isRecording = true;
-        recognition.start();
-        document.getElementById('status').innerText = "🔴 Đang nghe...";
+    function toggleMic() {
+        if (!isRecording) {
+            recognition.start();
+            isRecording = true;
+            document.getElementById('status').innerText = "🔴 Hệ thống đang nghe...";
+            document.getElementById('status').className = "mic-on";
+            document.getElementById('btnMain').innerText = "⏸ Đang nghe (Bấm để dừng)";
+            document.getElementById('btnMain').style.background = "#c0392b";
+        } else {
+            recognition.stop();
+        }
     }
 
-    function stopBtn() {
-        isRecording = false;
-        recognition.stop();
-        document.getElementById('status').innerText = "🟢 Đã tạm dừng.";
+    function clearAll() {
+        if(confirm("Em muốn xóa hết đoạn đã đọc để đọc lại từ đầu phải không?")) {
+            finalCombinedText = "";
+            document.getElementById('studentResult').innerText = "";
+            recognition.stop();
+        }
     }
 
     async function sendToTeacher() {
