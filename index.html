@@ -3,62 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
     <title>LUYỆN ĐỌC</title>
     <meta property="og:title" content="LUYỆN ĐỌC">
-    <meta property="og:description" content="Nhấn vào link để bắt đầu bài luyện đọc!">
-   
-
+    <meta property="og:image" content="https://img.freepik.com/free-vector/open-book-with-cartoon-style_23-2148882914.jpg">
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; }
         .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
-        .warning { color: red; font-weight: bold; text-align: center; background: #ffffcc; padding: 10px; border-radius: 5px; font-size: 14px; margin-bottom: 15px; border: 1px solid #f1c40f; }
-        .label { font-weight: bold; display: block; margin-top: 15px; color: #34495e; }
-        #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; border-radius: 10px; min-height: 100px; font-size: 22px; margin-top: 10px; white-space: pre-wrap; line-height: 1.6; }
-        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 120px; font-size: 20px; margin-top: 10px; color: #2980b9; line-height: 1.6; pointer-events: none; }
+        h2 { text-align: center; color: #2c3e50; }
+        .warning { color: red; font-weight: bold; text-align: center; background: #ffffcc; padding: 10px; border-radius: 5px; font-size: 13px; margin-bottom: 15px; border: 1px solid #f1c40f; }
+        #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; border-radius: 10px; min-height: 80px; font-size: 22px; margin: 10px 0; white-space: pre-wrap; }
+        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 20px; color: #2980b9; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
         button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; }
         .btn-start { background: #27ae60; } .btn-stop { background: #c0392b; }
         .btn-send { background: #8e44ad; grid-column: span 2; }
-        input#studentName { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        #status { text-align: center; font-style: italic; color: #7f8c8d; margin-top: 5px; height: 20px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="warning">
-        ⚠️ Nếu lỗi Mic: Bấm (⋮) góc trên phải -> Chọn "Mở bằng trình duyệt"
-    </div>
-
+    <div class="warning">⚠️ Nếu lỗi Mic: Bấm (⋮) ở góc trên phải -> Chọn "Mở bằng trình duyệt"</div>
     <h2>📖 LUYỆN ĐỌC</h2>
-    
     <div id="teacherText">Đang tải bài đọc...</div>
-
-    <span class="label">👤 Tên của em:</span>
-    <input type="text" id="studentName" placeholder="Nhập họ tên...">
-
-    <span class="label">🎙️ Kết quả em đọc:</span>
-    <div id="status">Sẵn sàng</div>
+    <input type="text" id="studentName" placeholder="Nhập họ tên của em...">
     <div id="studentResult"></div>
-
+    <div id="status" style="text-align:center; font-style:italic; margin: 10px 0;">Sẵn sàng</div>
     <div class="btn-group">
         <button class="btn-start" onclick="startBtn()">Bắt đầu đọc</button>
         <button class="btn-stop" onclick="stopBtn()">Dừng lại</button>
-        <button class="btn-send" onclick="sendToTeacher()">Gửi bài cho GV</button>
+        <button class="btn-send" onclick="sendToTeacher()">Nộp bài cho GV.</button>
     </div>
 </div>
 
 <script>
-    // --- BẠN ĐIỀN THÔNG TIN VÀO 2 DÒNG DƯỚI ĐÂY ---
+    // --- ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY ---
     const SHEET_ID = "1tfcpFv0JGGXLovSbkOWHLNSHImKAIp3_ZEejtsoBjLY";
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
-    let finalTranscript = ""; 
     let isRecording = false;
+    let finalCombinedText = ""; // Lưu trữ văn bản cuối cùng đã lọc lặp
 
-    // 1. Lấy bài từ Sheets
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
         try {
@@ -68,7 +53,6 @@
         } catch (e) { document.getElementById('teacherText').innerText = "Lỗi tải bài!"; }
     };
 
-    // 2. Cấu hình Nhận diện giọng nói
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'vi-VN';
     recognition.continuous = true;
@@ -76,35 +60,42 @@
 
     recognition.onresult = (event) => {
         let interimTranscript = "";
+        let newFinalText = "";
+
         for (let i = event.resultIndex; i < event.results.length; ++i) {
-            const transcript = event.results[i][0].transcript;
             if (event.results[i].isFinal) {
-                // Kiểm tra chống lặp từ khi restart mic
-                if (!finalTranscript.trim().endsWith(transcript.trim())) {
-                    finalTranscript += transcript + " ";
-                }
+                newFinalText += event.results[i][0].transcript + " ";
             } else {
-                interimTranscript += transcript;
+                interimTranscript += event.results[i][0].transcript;
             }
         }
-        document.getElementById('studentResult').innerText = finalTranscript + interimTranscript;
+
+        if (newFinalText !== "") {
+            // THUẬT TOÁN MỚI: Chỉ thêm đoạn mới nếu nó không trùng với đoạn cuối của nội dung hiện tại
+            let currentContent = finalCombinedText.trim().toLowerCase();
+            let incomingContent = newFinalText.trim().toLowerCase();
+            
+            if (!currentContent.endsWith(incomingContent)) {
+                finalCombinedText += newFinalText;
+            }
+        }
+        
+        document.getElementById('studentResult').innerText = finalCombinedText + interimTranscript;
     };
 
-    // Tự động bật lại Mic mà không xóa dữ liệu cũ
     recognition.onend = () => {
         if (isRecording) {
-            try {
-                recognition.start();
-            } catch (e) { console.log("Khởi động lại mic..."); }
+            // Khi Zalo ngắt, khởi động lại nhưng không xóa dữ liệu cũ
+            recognition.start();
         }
     };
 
     function startBtn() {
-        finalTranscript = ""; 
+        finalCombinedText = ""; // Xóa bài cũ để đọc bài mới
         document.getElementById('studentResult').innerText = "";
         isRecording = true;
         recognition.start();
-        document.getElementById('status').innerText = "🔴 Hệ thống đang nghe...";
+        document.getElementById('status').innerText = "🔴 Đang nghe...";
     }
 
     function stopBtn() {
@@ -116,20 +107,14 @@
     async function sendToTeacher() {
         const name = document.getElementById('studentName').value;
         const result = document.getElementById('studentResult').innerText;
-        if (!name) return alert("Em nhớ nhập tên trước khi nộp nhé!");
-        if (!result) return alert("Chưa có nội dung đọc, em hãy đọc trước đã!");
-        
+        if (!name) return alert("Em nhập tên nhé!");
         try {
             await fetch(WEB_APP_URL, {
                 method: "POST", mode: "no-cors",
-                body: JSON.stringify({ 
-                    name: name, 
-                    original: document.getElementById('teacherText').innerText, 
-                    result: result 
-                })
+                body: JSON.stringify({ name: name, original: document.getElementById('teacherText').innerText, result: result })
             });
-            alert("Chúc mừng " + name + "! Bài đọc của em đã được gửi cho GV.");
-        } catch (e) { alert("Lỗi kết nối. Em hãy nhấn nộp lại lần nữa nhé!"); }
+            alert("GV đã nhận được bài của " + name);
+        } catch (e) { alert("Lỗi gửi bài!"); }
     }
 </script>
 </body>
