@@ -3,117 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LUYỆN ĐỌC</title>
-    <meta property="og:title" content="LỚP 2A - BÉ LUYỆN ĐỌC HAY">
-    <meta property="og:image" content="https://img.freepik.com/free-vector/open-book-with-cartoon-style_23-2148882914.jpg">
+    <title>Luyện Đọc</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; }
         .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; }
-        .warning { color: red; font-weight: bold; text-align: center; background: #ffffcc; padding: 10px; border-radius: 5px; font-size: 13px; margin-bottom: 15px; border: 1px solid #f1c40f; }
-        #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; border-radius: 10px; min-height: 80px; font-size: 22px; margin: 10px 0; white-space: pre-wrap; }
-        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 20px; color: #2980b9; }
+        .label { font-weight: bold; display: block; margin-top: 15px; color: #34495e; }
+        
+        /* Khung hiển thị bài đọc từ giáo viên */
+        #teacherText { 
+            background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; 
+            border-radius: 10px; min-height: 150px; font-size: 20px; 
+            margin-top: 10px; white-space: pre-wrap; color: #2c3e50; line-height: 1.6;
+        }
+
+        /* Khung hiển thị kết quả đọc - ĐÃ KHÓA KHÔNG CHO GÕ */
+        #studentResult { 
+            background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; 
+            border-radius: 10px; min-height: 120px; font-size: 19px; 
+            margin-top: 10px; color: #2980b9; line-height: 1.6;
+            user-select: none; /* Ngăn chặn việc copy/paste vào */
+            pointer-events: none; /* Ngăn chặn mọi tương tác chuột/bàn phím vào ô này */
+        }
+        
+        /* Cho phép tương tác lại khi bấm nút đọc để máy ghi chữ vào */
+        .active-recording { pointer-events: auto !important; }
+
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; }
-        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; }
-        .btn-start { background: #27ae60; } .btn-stop { background: #c0392b; }
-        .btn-send { background: #8e44ad; grid-column: span 2; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; transition: 0.3s; }
+        .btn-start { background: #27ae60; } .btn-start:hover { background: #2ecc71; }
+        .btn-stop { background: #c0392b; } .btn-stop:hover { background: #e74c3c; }
+        .btn-send { background: #8e44ad; grid-column: span 2; } .btn-send:hover { background: #9b59b6; }
+        
+        input#studentName { width: 100%; padding: 12px; margin-top: 10px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        #status { text-align: center; font-style: italic; color: #7f8c8d; margin-top: 5px; height: 20px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="warning">⚠️ Nếu lỗi Mic: Bấm (⋮) ở góc trên phải -> Chọn "Mở bằng trình duyệt"</div>
-    <h2>📖 LUYỆN ĐỌC</h2>
+    <h2>📖 BÀI LUYỆN ĐỌC</h2>
+    
     <div id="teacherText">Đang tải bài đọc...</div>
-    <input type="text" id="studentName" placeholder="Nhập họ tên của em...">
+
+    <span class="label">👤 Tên của em:</span>
+    <input type="text" id="studentName" placeholder="Nhập họ và tên để bắt đầu...">
+
+    <span class="label">🎙️ Kết quả em đọc (Máy tự ghi chữ):</span>
+    <div id="status">Nhấn nút xanh để bắt đầu</div>
     <div id="studentResult"></div>
-    <div id="status" style="text-align:center; font-style:italic; margin: 10px 0;">Sẵn sàng</div>
+
     <div class="btn-group">
-        <button class="btn-start" onclick="startBtn()">Bắt đầu đọc</button>
-        <button class="btn-stop" onclick="stopBtn()">Dừng lại</button>
+        <button class="btn-start" onclick="startRecognition()">Bắt đầu đọc</button>
+        <button class="btn-stop" onclick="stopRecognition()">Dừng lại</button>
         <button class="btn-send" onclick="sendToTeacher()">Gửi bài</button>
     </div>
 </div>
 
 <script>
-    // --- ĐIỀN THÔNG TIN CỦA BẠN VÀO ĐÂY ---
+    // --- CẤU HÌNH ---
     const SHEET_ID = "1tfcpFv0JGGXLovSbkOWHLNSHImKAIp3_ZEejtsoBjLY";
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
-    let isRecording = false;
-    let finalCombinedText = ""; // Lưu trữ văn bản cuối cùng đã lọc lặp
-
+    // 1. Lấy bài từ Sheets (B1)
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
         try {
             const response = await fetch(url);
             const data = await response.text();
             document.getElementById('teacherText').innerText = data.replace(/^"|"$/g, '').replace(/""/g, '"');
-        } catch (e) { document.getElementById('teacherText').innerText = "Lỗi tải bài!"; }
+        } catch (e) {
+            document.getElementById('teacherText').innerText = "Lỗi kết nối bài đọc!";
+        }
     };
 
+    // 2. Nhận diện giọng nói
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'vi-VN';
     recognition.continuous = true;
     recognition.interimResults = true;
 
+    function startRecognition() { 
+        recognition.start(); 
+        document.getElementById('status').innerText = "🔴 Đang lắng nghe... Em hãy đọc to nhé!";
+    }
+    
+    function stopRecognition() { 
+        recognition.stop(); 
+        document.getElementById('status').innerText = "🟢 Đã dừng."; 
+    }
+
     recognition.onresult = (event) => {
-        let interimTranscript = "";
-        let newFinalText = "";
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-                newFinalText += event.results[i][0].transcript + " ";
-            } else {
-                interimTranscript += event.results[i][0].transcript;
-            }
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
         }
-
-        if (newFinalText !== "") {
-            // THUẬT TOÁN MỚI: Chỉ thêm đoạn mới nếu nó không trùng với đoạn cuối của nội dung hiện tại
-            let currentContent = finalCombinedText.trim().toLowerCase();
-            let incomingContent = newFinalText.trim().toLowerCase();
-            
-            if (!currentContent.endsWith(incomingContent)) {
-                finalCombinedText += newFinalText;
-            }
-        }
-        
-        document.getElementById('studentResult').innerText = finalCombinedText + interimTranscript;
+        // Ghi kết quả vào khung (HS không gõ được nhưng máy vẫn ghi được)
+        document.getElementById('studentResult').innerText = transcript;
     };
 
-    recognition.onend = () => {
-        if (isRecording) {
-            // Khi Zalo ngắt, khởi động lại nhưng không xóa dữ liệu cũ
-            recognition.start();
-        }
-    };
-
-    function startBtn() {
-        finalCombinedText = ""; // Xóa bài cũ để đọc bài mới
-        document.getElementById('studentResult').innerText = "";
-        isRecording = true;
-        recognition.start();
-        document.getElementById('status').innerText = "🔴 Đang nghe...";
-    }
-
-    function stopBtn() {
-        isRecording = false;
-        recognition.stop();
-        document.getElementById('status').innerText = "🟢 Đã tạm dừng.";
-    }
-
+    // 3. Gửi bài nộp
     async function sendToTeacher() {
         const name = document.getElementById('studentName').value;
         const result = document.getElementById('studentResult').innerText;
-        if (!name) return alert("Em nhập tên nhé!");
+        
+        if (!name) return alert("Em nhập tên trước khi nộp bài nhé!");
+        if (!result) return alert("Em chưa đọc gì mà!");
+
         try {
             await fetch(WEB_APP_URL, {
                 method: "POST", mode: "no-cors",
-                body: JSON.stringify({ name: name, original: document.getElementById('teacherText').innerText, result: result })
+                body: JSON.stringify({ 
+                    name: name, 
+                    original: document.getElementById('teacherText').innerText, 
+                    result: result 
+                })
             });
-            alert("GV đã nhận được bài của " + name);
+            alert("Chúc mừng " + name + "! GV đã nhận được bài rồi.");
         } catch (e) { alert("Lỗi gửi bài!"); }
     }
 </script>
