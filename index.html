@@ -9,31 +9,31 @@
         .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #2c3e50; }
         #teacherText { background: #fdf9e7; border: 2px solid #f1c40f; padding: 20px; border-radius: 10px; min-height: 80px; font-size: 22px; margin: 10px 0; white-space: pre-wrap; }
-        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 100px; font-size: 20px; color: #2980b9; margin-bottom: 10px; }
+        #studentResult { background: #f0f7ff; border: 2px dashed #3498db; padding: 15px; border-radius: 10px; min-height: 120px; font-size: 20px; color: #2980b9; margin-bottom: 10px; line-height: 1.6; }
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; transition: 0.3s; }
-        .btn-start { background: #27ae60; grid-column: span 2; } /* Nút to nhất */
+        button { padding: 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; color: white; font-size: 16px; }
+        .btn-start { background: #27ae60; grid-column: span 2; }
         .btn-stop { background: #e67e22; }
         .btn-send { background: #8e44ad; }
         input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-        #status { text-align: center; font-weight: bold; margin: 10px 0; height: 25px; }
-        .mic-off { color: red; }
-        .mic-on { color: green; }
+        #status { text-align: center; font-weight: bold; margin: 10px 0; }
+        .hint { font-size: 12px; color: #666; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>📖 LUYỆN ĐỌC</h2>
+    <div class="hint">Mẹo: Nếu Mic tắt, hãy bấm nút xanh để đọc tiếp đoạn sau.</div>
     <div id="teacherText">Đang tải bài đọc...</div>
     <input type="text" id="studentName" placeholder="Nhập họ tên của em...">
-    <div id="status" class="mic-off">Trạng thái: Đang tắt Mic</div>
+    <div id="status" style="color: red;">Mic đang tắt</div>
     <div id="studentResult"></div>
     
     <div class="btn-group">
-        <button id="btnMain" class="btn-start" onclick="toggleMic()">🎤 Bấm để bắt đầu đọc</button>
+        <button id="btnMain" class="btn-start" onclick="toggleMic()">🎤 Bắt đầu đọc</button>
         <button class="btn-stop" onclick="clearAll()">Xóa đọc lại</button>
-        <button class="btn-send" onclick="sendToTeacher()">Gửi bài cho GV.</button>
+        <button class="btn-send" onclick="sendToTeacher()">Nộp bài</button>
     </div>
 </div>
 
@@ -42,7 +42,7 @@
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
     let isRecording = false;
-    let finalCombinedText = ""; 
+    let wordsArray = []; // Mảng lưu trữ các từ duy nhất
 
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
@@ -59,25 +59,27 @@
     recognition.interimResults = true;
 
     recognition.onresult = (event) => {
-        let interimTranscript = "";
-        let newFinalText = "";
         for (let i = event.resultIndex; i < event.results.length; ++i) {
             if (event.results[i].isFinal) {
-                newFinalText += event.results[i][0].transcript + " ";
-            } else {
-                interimTranscript += event.results[i][0].transcript;
+                let newWords = event.results[i][0].transcript.toLowerCase().split(/\s+/);
+                newWords.forEach(word => {
+                    word = word.trim();
+                    if (word !== "" && wordsArray[wordsArray.length - 1] !== word) {
+                        // Chỉ thêm nếu từ này không giống hệt từ vừa đứng trước nó
+                        wordsArray.push(word);
+                    }
+                });
             }
         }
-        document.getElementById('studentResult').innerText = finalCombinedText + newFinalText + interimTranscript;
-        if (newFinalText) finalCombinedText += newFinalText;
+        // Hiển thị mảng từ thành câu
+        document.getElementById('studentResult').innerText = wordsArray.join(" ");
     };
 
-    // Khi Mic tự ngắt (Do Zalo hoặc do đứng máy)
     recognition.onend = () => {
         isRecording = false;
-        document.getElementById('status').innerText = "⚠️ Mic đã tắt. Bấm nút xanh để đọc tiếp";
-        document.getElementById('status').className = "mic-off";
-        document.getElementById('btnMain').innerText = "🎤 Bấm để đọc tiếp";
+        document.getElementById('status').innerText = "⚠️ Mic đã nghỉ. Bấm để đọc tiếp";
+        document.getElementById('status').style.color = "red";
+        document.getElementById('btnMain').innerText = "🎤 Đọc tiếp đoạn sau";
         document.getElementById('btnMain').style.background = "#27ae60";
     };
 
@@ -86,8 +88,8 @@
             recognition.start();
             isRecording = true;
             document.getElementById('status').innerText = "🔴 Hệ thống đang nghe...";
-            document.getElementById('status').className = "mic-on";
-            document.getElementById('btnMain').innerText = "⏸ Đang nghe (Bấm để dừng)";
+            document.getElementById('status').style.color = "green";
+            document.getElementById('btnMain').innerText = "⏸ Tạm dừng";
             document.getElementById('btnMain').style.background = "#c0392b";
         } else {
             recognition.stop();
@@ -95,8 +97,8 @@
     }
 
     function clearAll() {
-        if(confirm("Em muốn xóa hết đoạn đã đọc để đọc lại từ đầu phải không?")) {
-            finalCombinedText = "";
+        if(confirm("Xóa bài để đọc lại từ đầu?")) {
+            wordsArray = [];
             document.getElementById('studentResult').innerText = "";
             recognition.stop();
         }
