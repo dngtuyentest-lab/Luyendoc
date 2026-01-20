@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LUYỆN ĐỌC</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; text-align: center; }
+        .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        #readingArea { 
+            font-size: 26px; line-height: 2.2; text-align: justify; 
+            background: #fdf9e7; padding: 20px; border-radius: 10px; 
+            border: 2px solid #f1c40f; margin-bottom: 20px; min-height: 150px;
+        }
+        .word { color: #b2bec3; display: inline-block; margin-right: 8px; transition: all 0.2s; }
+        .read { color: #d63031; font-weight: bold; transform: scale(1.1); text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        .btn-start { background: #27ae60; color: white; padding: 18px 30px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 20px; width: 100%; box-shadow: 0 4px #219150; }
+        .btn-start:active { box-shadow: 0 2px #219150; transform: translateY(2px); }
+        #status { margin-top: 15px; font-weight: bold; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="color: #2c3e50;">📖 BÉ TẬP ĐỌC KARAOKE</h2>
+    <p style="color: #636e72;">Con đọc đúng, chữ sẽ tự tô <b>MÀU ĐỎ</b> nhé!</p>
+    
+    <div id="readingArea">Đang chuẩn bị bài đọc...</div>
+
+    <input type="text" id="studentName" placeholder="Nhập tên của con..." style="width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 10px; border: 2px solid #dfe6e9; box-sizing: border-box; font-size: 16px;">
+
+    <button id="btnMain" class="btn-start" onclick="toggleMic()">🎤 BẮT ĐẦU ĐỌC</button>
+    <div id="status">Sẵn sàng</div>
+</div>
+
+<script>
+    // THAY ID SHEET CỦA BẠN VÀO ĐÂY
+    const SHEET_ID = "1e8_A7nQpXUoKCHqWw_Y6A61_hF2L0eD30K_tD5yUvWk"; 
+
+    let isRecording = false;
+    let allWords = [];
+
+    window.onload = async function() {
+        const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
+        try {
+            const response = await fetch(url);
+            const text = await response.text();
+            const cleanText = text.replace(/^"|"$/g, '').replace(/""/g, '"');
+            allWords = cleanText.split(/\s+/);
+            document.getElementById('readingArea').innerHTML = allWords.map((word, index) => 
+                `<span class="word" id="word-${index}">${word}</span>`
+            ).join('');
+        } catch (e) { document.getElementById('readingArea').innerText = "Lỗi tải bài! Kiểm tra lại ID Sheet và quyền Chia sẻ."; }
+    };
+
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'vi-VN';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            let spokenText = event.results[i][0].transcript.toLowerCase();
+            allWords.forEach((word, index) => {
+                let cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
+                if (spokenText.includes(cleanWord)) {
+                    document.getElementById(`word-${index}`).classList.add('read');
+                }
+            });
+        }
+    };
+
+    recognition.onend = () => { if (isRecording) recognition.start(); };
+
+    function toggleMic() {
+        if (!isRecording) {
+            recognition.start();
+            isRecording = true;
+            document.getElementById('btnMain').innerText = "⏸ ĐANG NGHE... BẤM ĐỂ DỪNG";
+            document.getElementById('btnMain').style.background = "#d63031";
+            document.getElementById('status').innerText = "Hệ thống đang mở mic";
+        } else {
+            recognition.stop();
+            isRecording = false;
+            document.getElementById('btnMain').innerText = "🎤 TIẾP TỤC ĐỌC";
+            document.getElementById('btnMain').style.background = "#27ae60";
+            document.getElementById('status').innerText = "Đã tạm dừng";
+        }
+    }
+</script>
+</body>
+</html>
