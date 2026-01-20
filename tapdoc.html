@@ -51,7 +51,7 @@
 
     let isRecording = false;
     let allWords = [];
-    let currentIndex = 0; // Biến theo dõi từ đang cần đọc
+    let currentIndex = 0; 
 
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
@@ -75,12 +75,22 @@
         for (let i = event.resultIndex; i < event.results.length; i++) {
             let spoken = event.results[i][0].transcript.toLowerCase();
             
-            // THUẬT TOÁN MỚI: Chỉ kiểm tra từ hiện tại và một vài từ kế tiếp (giới hạn phạm vi)
-            for (let j = currentIndex; j < Math.min(currentIndex + 5, allWords.length); j++) {
-                let targetWord = allWords[j].toLowerCase().replace(/[.,!?;:]/g, '');
-                if (spoken.includes(targetWord)) {
-                    document.getElementById(`word-${j}`).classList.add('read');
-                    if (j === currentIndex) currentIndex++; 
+            // MỞ RỘNG PHẠM VI NGHE ĐẾN 7 TỪ KẾ TIẾP
+            // Giúp học sinh bỏ qua 1 đoạn dài vẫn đọc tiếp được
+            for (let offset = 0; offset <= 7; offset++) {
+                let checkIndex = currentIndex + offset;
+                if (checkIndex < allWords.length) {
+                    // Loại bỏ dấu câu để so khớp chính xác hơn
+                    let targetWord = allWords[checkIndex].toLowerCase().replace(/[.,!?;:"]/g, '');
+                    
+                    if (spoken.includes(targetWord)) {
+                        document.getElementById(`word-${checkIndex}`).classList.add('read');
+                        
+                        // Nếu từ vừa đọc nằm sau vị trí hiện tại, máy tự nhảy lên vị trí mới
+                        if (checkIndex >= currentIndex) {
+                            currentIndex = checkIndex + 1;
+                        }
+                    }
                 }
             }
         }
@@ -95,24 +105,25 @@
             document.getElementById('btnMain').innerText = "⏸ ĐANG NGHE... BẤM ĐỂ DỪNG";
             document.getElementById('btnMain').style.background = "#ee5253";
             document.getElementById('btnSend').style.display = "none";
+            document.getElementById('status').innerText = "Hệ thống đang mở mic";
         } else {
             recognition.stop();
             isRecording = false;
             document.getElementById('btnMain').innerText = "🎤 TIẾP TỤC ĐỌC";
             document.getElementById('btnMain').style.background = "#2ecc71";
             document.getElementById('btnSend').style.display = "block";
+            document.getElementById('status').innerText = "Đã dừng mic";
         }
     }
 
     async function sendResult() {
         const name = document.getElementById('studentName').value;
-        if (!name) return alert("Em chưa nhập tên kìa!");
+        if (!name) return alert("Con chưa nhập tên kìa!");
 
         const readWords = document.querySelectorAll('.read').length;
         const total = allWords.length;
         const percent = Math.round((readWords / total) * 100);
         
-        // Tìm từ chưa đọc rõ
         let missed = [];
         allWords.forEach((w, i) => {
             if (!document.getElementById(`word-${i}`).classList.contains('read')) missed.push(w);
@@ -120,21 +131,31 @@
 
         const log = document.getElementById('resultLog');
         log.style.display = "block";
-        log.innerHTML = `Kết quả: ${percent}%<br>Từ chưa rõ: ${missed.slice(0,5).join(', ')}...`;
+        log.innerHTML = `🌟 Kết quả: ${percent}%<br>✅ Đúng ${readWords}/${total} từ<br>❌ Cần luyện thêm: ${missed.slice(0,5).join(', ')}${missed.length > 5 ? '...' : ''}`;
 
-        // Gửi về Google Sheets
         try {
+            // Hiển thị trạng thái đang gửi
+            document.getElementById('btnSend').innerText = "⌛ ĐANG GỬI BÀI...";
+            document.getElementById('btnSend').disabled = true;
+
             await fetch(WEB_APP_URL, {
                 method: "POST", mode: "no-cors",
                 body: JSON.stringify({ 
                     name: name, 
                     score: percent + "%", 
+                    details: `${readWords}/${total}`,
                     missed: missed.join(', ') 
                 })
             });
-            alert("Chúc mừng " + name + "! GV đã nhận được kết quả của con.");
-        } catch (e) { alert("Có lỗi khi gửi bài!"); }
+            alert("Chúc mừng " + name + "! Bài của em đã được gửi đến GV.");
+            document.getElementById('btnSend').innerText = "🚀 ĐÃ GỬI XONG";
+        } catch (e) { 
+            alert("Lỗi khi gửi bài! Em hãy chụp màn hình lại nhé."); 
+            document.getElementById('btnSend').innerText = "🚀 GỬI LẠI";
+            document.getElementById('btnSend').disabled = false;
+        }
     }
+</script>
 </script>
 </body>
 </html>
