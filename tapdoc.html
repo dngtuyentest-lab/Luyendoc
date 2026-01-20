@@ -39,7 +39,7 @@
     <input type="text" id="studentName" placeholder="Nhập họ tên của em..." style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 2px solid #ddd; box-sizing: border-box;">
 
     <button id="btnMain" class="btn btn-start" onclick="toggleMic()">🎤 BẮT ĐẦU ĐỌC</button>
-    <button id="btnSend" class="btn btn-send" onclick="sendResult()">🚀 GỬI KẾT QUẢ CHO CÔ</button>
+    <button id="btnSend" class="btn btn-send" onclick="sendResult()">🚀 GỬI KẾT QUẢ CHO GV</button>
     
     <div id="resultLog"></div>
     <div id="status" style="margin-top:10px; font-size: 14px; color: #8395a7;">Sẵn sàng</div>
@@ -118,7 +118,7 @@
 
     async function sendResult() {
         const name = document.getElementById('studentName').value;
-        if (!name) return alert("Con chưa nhập tên kìa!");
+        if (!name) return alert("Em chưa nhập tên kìa!");
 
         const readWords = document.querySelectorAll('.read').length;
         const total = allWords.length;
