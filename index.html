@@ -71,28 +71,37 @@
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onresult = (event) => {
+  recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
             let spoken = event.results[i][0].transcript.toLowerCase();
             
-            // MỞ RỘNG PHẠM VI NGHE ĐẾN 7 TỪ KẾ TIẾP
-            // Giúp học sinh bỏ qua 1 đoạn dài vẫn đọc tiếp được
+            // 1. Ưu tiên kiểm tra vùng lân cận (7 từ tiếp theo) để tự động nhảy Index
             for (let offset = 0; offset <= 4; offset++) {
                 let checkIndex = currentIndex + offset;
                 if (checkIndex < allWords.length) {
-                    // Loại bỏ dấu câu để so khớp chính xác hơn
                     let targetWord = allWords[checkIndex].toLowerCase().replace(/[.,!?;:"]/g, '');
-                    
                     if (spoken.includes(targetWord)) {
                         document.getElementById(`word-${checkIndex}`).classList.add('read');
-                        
-                        // Nếu từ vừa đọc nằm sau vị trí hiện tại, máy tự nhảy lên vị trí mới
+                        // Nếu là từ phía trước, đẩy currentIndex lên để bám sát tốc độ đọc
                         if (checkIndex >= currentIndex) {
                             currentIndex = checkIndex + 1;
                         }
                     }
                 }
             }
+
+            // 2. CƠ CHẾ ĐỌC BÙ: Kiểm tra toàn bộ bài đọc
+            // Nếu học sinh đọc lại một từ bất kỳ ở phía trước mà chưa được tô đỏ, máy sẽ tô đỏ luôn
+            allWords.forEach((word, index) => {
+                let cleanWord = word.toLowerCase().replace(/[.,!?;:"]/g, '');
+                // Nếu trong câu nói có từ này VÀ từ này trên màn hình chưa được tô đỏ
+                if (spoken.includes(cleanWord)) {
+                    let element = document.getElementById(`word-${index}`);
+                    if (!element.classList.contains('read')) {
+                        element.classList.add('read');
+                    }
+                }
+            });
         }
     };
 
