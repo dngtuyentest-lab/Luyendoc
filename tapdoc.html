@@ -5,40 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LUYỆN ĐỌC</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; padding: 15px; text-align: center; }
-        .container { max-width: 650px; margin: auto; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f7ff; padding: 10px; text-align: center; margin: 0; }
+        .container { max-width: 500px; margin: auto; background: white; padding: 15px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* Giao diện đoạn đọc tối ưu cho điện thoại */
         #readingArea { 
-            font-size: 26px; line-height: 2.2; text-align: justify; 
-            background: #fdf9e7; padding: 20px; border-radius: 10px; 
-            border: 2px solid #f1c40f; margin-bottom: 20px; min-height: 150px;
+            font-size: 22px; line-height: 1.8; text-align: justify; 
+            background: #ffffff; padding: 15px; border-radius: 15px; 
+            border: 3px solid #3498db; margin-bottom: 15px; min-height: 200px;
+            word-wrap: break-word;
         }
-        .word { color: #b2bec3; display: inline-block; margin-right: 8px; transition: all 0.2s; }
-        .read { color: #d63031; font-weight: bold; transform: scale(1.1); text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
-        .btn-start { background: #27ae60; color: white; padding: 18px 30px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 20px; width: 100%; box-shadow: 0 4px #219150; }
-        .btn-start:active { box-shadow: 0 2px #219150; transform: translateY(2px); }
-        #status { margin-top: 15px; font-weight: bold; color: #7f8c8d; }
+
+        /* Chữ chưa đọc: Đậm và rõ hơn (màu xám đậm) */
+        .word { color: #576574; display: inline-block; margin-right: 5px; font-weight: 600; }
+        
+        /* Chữ đã đọc đúng: Đỏ nổi bật */
+        .read { color: #ee5253 !important; font-weight: 900; text-decoration: underline; }
+
+        .btn { padding: 15px; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        .btn-start { background: #2ecc71; color: white; box-shadow: 0 4px #27ae60; }
+        .btn-send { background: #3498db; color: white; box-shadow: 0 4px #2980b9; display: none; }
+        
+        #resultLog { margin-top: 15px; padding: 10px; background: #feca57; border-radius: 10px; display: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2 style="color: #2c3e50;">📖 LUYÊN ĐỌC</h2>
-    <p style="color: #636e72;">Hãy đọc đúng, chữ sẽ tự tô <b>MÀU ĐỎ</b> nhé!</p>
+    <h3 style="color: #2c3e50; margin-bottom: 5px;">📖 LUYỆN ĐỌC </h3>
     
-    <div id="readingArea">Đang chuẩn bị bài đọc...</div>
+    <div id="readingArea">Đang tải bài đọc...</div>
 
-    <input type="text" id="studentName" placeholder="Nhập tên của em..." style="width: 100%; padding: 15px; margin-bottom: 20px; border-radius: 10px; border: 2px solid #dfe6e9; box-sizing: border-box; font-size: 16px;">
+    <input type="text" id="studentName" placeholder="Nhập họ tên của con..." style="width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 2px solid #ddd; box-sizing: border-box;">
 
-    <button id="btnMain" class="btn-start" onclick="toggleMic()">🎤 BẮT ĐẦU ĐỌC</button>
-    <div id="status">Sẵn sàng</div>
+    <button id="btnMain" class="btn btn-start" onclick="toggleMic()">🎤 BẮT ĐẦU ĐỌC</button>
+    <button id="btnSend" class="btn btn-send" onclick="sendResult()">🚀 GỬI KẾT QUẢ CHO CÔ</button>
+    
+    <div id="resultLog"></div>
+    <div id="status" style="margin-top:10px; font-size: 14px; color: #8395a7;">Sẵn sàng</div>
 </div>
 
 <script>
-    // THAY ID SHEET CỦA BẠN VÀO ĐÂY
     const SHEET_ID = "1tfcpFv0JGGXLovSbkOWHLNSHImKAIp3_ZEejtsoBjLY"; 
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwQUIutMQK6yj6ZTFLCRFJSZuThYk50cEQHGDLeWslUScCrIVUzOjxHgiyd5ZFg5B57qw/exec";
 
     let isRecording = false;
     let allWords = [];
+    let currentIndex = 0; // Biến theo dõi từ đang cần đọc
 
     window.onload = async function() {
         const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&range=B1`;
@@ -50,7 +63,7 @@
             document.getElementById('readingArea').innerHTML = allWords.map((word, index) => 
                 `<span class="word" id="word-${index}">${word}</span>`
             ).join('');
-        } catch (e) { document.getElementById('readingArea').innerText = "Lỗi tải bài! Kiểm tra lại ID Sheet và quyền Chia sẻ."; }
+        } catch (e) { alert("Lỗi tải bài đọc!"); }
     };
 
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
@@ -60,13 +73,16 @@
 
     recognition.onresult = (event) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
-            let spokenText = event.results[i][0].transcript.toLowerCase();
-            allWords.forEach((word, index) => {
-                let cleanWord = word.toLowerCase().replace(/[.,!?;:]/g, '');
-                if (spokenText.includes(cleanWord)) {
-                    document.getElementById(`word-${index}`).classList.add('read');
+            let spoken = event.results[i][0].transcript.toLowerCase();
+            
+            // THUẬT TOÁN MỚI: Chỉ kiểm tra từ hiện tại và một vài từ kế tiếp (giới hạn phạm vi)
+            for (let j = currentIndex; j < Math.min(currentIndex + 5, allWords.length); j++) {
+                let targetWord = allWords[j].toLowerCase().replace(/[.,!?;:]/g, '');
+                if (spoken.includes(targetWord)) {
+                    document.getElementById(`word-${j}`).classList.add('read');
+                    if (j === currentIndex) currentIndex++; 
                 }
-            });
+            }
         }
     };
 
@@ -77,15 +93,47 @@
             recognition.start();
             isRecording = true;
             document.getElementById('btnMain').innerText = "⏸ ĐANG NGHE... BẤM ĐỂ DỪNG";
-            document.getElementById('btnMain').style.background = "#d63031";
-            document.getElementById('status').innerText = "Hệ thống đang mở mic";
+            document.getElementById('btnMain').style.background = "#ee5253";
+            document.getElementById('btnSend').style.display = "none";
         } else {
             recognition.stop();
             isRecording = false;
             document.getElementById('btnMain').innerText = "🎤 TIẾP TỤC ĐỌC";
-            document.getElementById('btnMain').style.background = "#27ae60";
-            document.getElementById('status').innerText = "Đã tạm dừng";
+            document.getElementById('btnMain').style.background = "#2ecc71";
+            document.getElementById('btnSend').style.display = "block";
         }
+    }
+
+    async function sendResult() {
+        const name = document.getElementById('studentName').value;
+        if (!name) return alert("Em chưa nhập tên kìa!");
+
+        const readWords = document.querySelectorAll('.read').length;
+        const total = allWords.length;
+        const percent = Math.round((readWords / total) * 100);
+        
+        // Tìm từ chưa đọc rõ
+        let missed = [];
+        allWords.forEach((w, i) => {
+            if (!document.getElementById(`word-${i}`).classList.contains('read')) missed.push(w);
+        });
+
+        const log = document.getElementById('resultLog');
+        log.style.display = "block";
+        log.innerHTML = `Kết quả: ${percent}%<br>Từ chưa rõ: ${missed.slice(0,5).join(', ')}...`;
+
+        // Gửi về Google Sheets
+        try {
+            await fetch(WEB_APP_URL, {
+                method: "POST", mode: "no-cors",
+                body: JSON.stringify({ 
+                    name: name, 
+                    score: percent + "%", 
+                    missed: missed.join(', ') 
+                })
+            });
+            alert("Chúc mừng " + name + "! GV đã nhận được kết quả của con.");
+        } catch (e) { alert("Có lỗi khi gửi bài!"); }
     }
 </script>
 </body>
